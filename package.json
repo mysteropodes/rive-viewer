@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@rive-app/react-canvas": "^4.27.0",
+    "@rive-app/react-webgl2": "^4.27.2",
     "jszip": "^3.10.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useRive } from '@rive-app/react-canvas'
+import { useRive } from '@rive-app/react-webgl2'
 
 // StateMachineInputType.Boolean = 59
 const BOOL = 59
@@ -113,6 +113,7 @@ export default function RivePlayer({
     artboard,
     ...(stateMachine ? { stateMachines: stateMachine } : {}),
     autoplay: true,
+    autoBind: true,
   })
 
   // Build inputMap from the loaded SM — no hardcoded names

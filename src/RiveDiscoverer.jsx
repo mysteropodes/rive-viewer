@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useRive } from '@rive-app/react-canvas'
+import { useRive } from '@rive-app/react-webgl2'
 
 // StateMachineInputType.Boolean = 59  (Number=56, Trigger=58)
 const BOOL = 59
