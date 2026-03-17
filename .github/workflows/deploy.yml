@@ -25,7 +25,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - run: npm ci
@@ -33,10 +33,9 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # Remplace 'rive-viewer' par le nom exact de ton repo GitHub
           VITE_BASE: /${{ github.event.repository.name }}/
 
-      - uses: actions/configure-pages@v4
+      - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:
