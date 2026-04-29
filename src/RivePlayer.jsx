@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRive } from '@rive-app/react-webgl2'
 
-// StateMachineInputType.Boolean = 59
-const BOOL = 59
+// StateMachineInputType: Number=56, Trigger=58, Boolean=59
+const BOOL    = 59
+const TRIGGER = 58
 
 const BG_PRESETS = [
   { label: 'Dark',        value: '#0d1117' },
@@ -29,6 +30,25 @@ function BoolToggle({ label, input }) {
       <span className="bool-dot" />
       {label}
       <span className="bool-badge">{on ? 'ON' : 'OFF'}</span>
+    </button>
+  )
+}
+
+/* ── Trigger button ──────────────────────────────────── */
+function TriggerBtn({ label, input }) {
+  const [flash, setFlash] = useState(false)
+  const fire = () => {
+    if (input) input.fire()
+    setFlash(true)
+    setTimeout(() => setFlash(false), 300)
+  }
+  return (
+    <button
+      onClick={fire}
+      className={'trigger-btn' + (flash ? ' trigger-btn--flash' : '')}
+      disabled={!input}
+    >
+      ▶ {label}
     </button>
   )
 }
@@ -101,11 +121,11 @@ function ColorPicker({ color, onChange }) {
 
 /* ── Player ──────────────────────────────────────────── */
 export default function RivePlayer({
-  src, artboard, stateMachine = null, boolInputs = [],
+  src, artboard, stateMachine = null, boolInputs = [], triggerInputs = [],
   bgColor, onBgColorChange,
   hue, onHueChange, saturation, onSaturationChange,
 }) {
-  // Dynamic boolean inputs: populated after rive loads
+  // Dynamic inputs: populated after rive loads
   const [inputMap, setInputMap] = useState({})
 
   const { rive, canvas, RiveComponent } = useRive({
@@ -116,13 +136,13 @@ export default function RivePlayer({
     autoBind: true,
   })
 
-  // Build inputMap from the loaded SM — no hardcoded names
+  // Build inputMap for booleans AND triggers from the loaded SM
   useEffect(() => {
     if (!rive || !stateMachine) { setInputMap({}); return }
     const inputs = rive.stateMachineInputs(stateMachine) || []
     const map = {}
     inputs.forEach(input => {
-      if (input.type === BOOL) map[input.name] = input
+      if (input.type === BOOL || input.type === TRIGGER) map[input.name] = input
     })
     setInputMap(map)
   }, [rive, stateMachine])
@@ -275,9 +295,19 @@ export default function RivePlayer({
         {/* boolean inputs — driven by boolInputs list from discovery */}
         {boolInputs.length > 0 && (
           <div className="bool-inputs">
-            <span className="bool-label">Inputs</span>
+            <span className="bool-label">Boolean</span>
             {boolInputs.map(name => (
               <BoolToggle key={name} label={name} input={inputMap[name]} />
+            ))}
+          </div>
+        )}
+
+        {/* trigger inputs */}
+        {triggerInputs.length > 0 && (
+          <div className="bool-inputs">
+            <span className="bool-label">Trigger</span>
+            {triggerInputs.map(name => (
+              <TriggerBtn key={name} label={name} input={inputMap[name]} />
             ))}
           </div>
         )}

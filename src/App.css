@@ -308,6 +308,14 @@ button:disabled { opacity: .35; cursor: default; }
 .bool-btn--on .bool-dot   { background: #388bfd; }
 .bool-btn--on .bool-badge { color: #388bfd; }
 
+.trigger-btn {
+  padding: 6px 12px;
+  border-color: #30363d;
+  color: #c9d1d9;
+  transition: background .1s, border-color .1s;
+}
+.trigger-btn--flash { border-color: #3fb950; background: #0d2a0d; color: #56d364; }
+
 .record-btn--on { border-color: #da3633 !important; color: #ff7b72 !important; background: #3d0c0c !important; animation: rec-blink 1s step-start infinite; }
 @keyframes rec-blink { 50% { opacity: .5 } }
 

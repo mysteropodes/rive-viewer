@@ -126,6 +126,7 @@ export default function App() {
                     artboard={current.label}
                     stateMachine={current.stateMachine ?? null}
                     boolInputs={current.boolInputs ?? []}
+                    triggerInputs={current.triggerInputs ?? []}
                     bgColor={bgColor}
                     onBgColorChange={setBgColor}
                     hue={hue}
@@ -133,7 +134,7 @@ export default function App() {
                     saturation={saturation}
                     onSaturationChange={setSaturation}
                   />
-                  {codeOpen && <CodePanel artboard={current} />}
+                  {codeOpen && <CodePanel artboard={current} fileName={fileName} />}
                 </div>
               </>
             ) : (

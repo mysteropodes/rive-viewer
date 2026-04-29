@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
 import { useRive } from '@rive-app/react-webgl2'
 
-// StateMachineInputType.Boolean = 59  (Number=56, Trigger=58)
-const BOOL = 59
+// StateMachineInputType: Number=56, Trigger=58, Boolean=59
+const BOOL    = 59
+const TRIGGER = 58
 
 /**
  * Parse rive.contents into the artboard config array.
@@ -22,11 +23,16 @@ export function parseContents(contents) {
       ?.filter(i => i.type === BOOL)
       .map(i => i.name) ?? []
 
+    const triggerInputs = mainSM?.inputs
+      ?.filter(i => i.type === TRIGGER)
+      .map(i => i.name) ?? []
+
     return {
       id:           `${ab.name}__${idx}`,
       label:        ab.name,
       stateMachine: mainSM?.name ?? null,
-      ...(boolInputs.length ? { boolInputs } : {}),
+      ...(boolInputs.length    ? { boolInputs }    : {}),
+      ...(triggerInputs.length ? { triggerInputs } : {}),
     }
   })
 }

@@ -95,15 +95,16 @@ function buildViewModelSnippet(artboard) {
 }
 
 /* ── helpers ───────────────────────────────────────────── */
-function buildSetupSnippet(artboard) {
-  const hasInputs = artboard.boolInputs?.length > 0
+function buildSetupSnippet(artboard, fileName) {
+  const hasInputs = (artboard.boolInputs?.length > 0) || (artboard.triggerInputs?.length > 0)
   const sm        = artboard.stateMachine ?? null
   const smLine    = sm ? `\n  stateMachines: STATE_MACHINE,` : ''
   const smConst   = sm ? `\nconst STATE_MACHINE = '${sm}'\n` : ''
+  const srcName   = fileName ?? 'animation.riv'
   return `import { useRive${hasInputs ? ', useStateMachineInput' : ''} } from '@rive-app/react-canvas'
 ${smConst}
 const { rive, RiveComponent } = useRive({
-  src: 'danim_anim.riv',
+  src: '${srcName}',
   artboard: '${artboard.label}',${smLine}
   autoplay: true,
 })
@@ -134,18 +135,35 @@ rive?.setTextRunValueAtPath('runName', 'text', 'path/artboard')`
 }
 
 function buildInputsSnippet(artboard) {
-  if (!artboard.boolInputs?.length) return null
-  const lines = artboard.boolInputs.map(
-    name => `const ${name}Input = useStateMachineInput(\n  rive, '${artboard.stateMachine}', '${name}', false\n)`
-  )
-  const toggles = artboard.boolInputs.map(
-    name => `${name}Input.value = !${name}Input.value`
-  )
-  return `// — Declare inputs (after useRive) ——————————
-${lines.join('\n\n')}
+  const bools    = artboard.boolInputs    ?? []
+  const triggers = artboard.triggerInputs ?? []
+  if (!bools.length && !triggers.length) return null
 
-// — Toggle from an onClick ————————————————
-${toggles.join('\n')}`
+  const sm = artboard.stateMachine
+
+  const boolDecls = bools.map(
+    name => `const ${name}Input = useStateMachineInput(\n  rive, '${sm}', '${name}', false\n)`
+  )
+  const trigDecls = triggers.map(
+    name => `const ${name}Input = useStateMachineInput(\n  rive, '${sm}', '${name}'\n)`
+  )
+
+  const boolUsage    = bools.map(name => `${name}Input.value = !${name}Input.value`)
+  const triggerUsage = triggers.map(name => `${name}Input?.fire()`)
+
+  const sections = []
+
+  if (boolDecls.length || trigDecls.length) {
+    sections.push(`// — Declare inputs (after useRive) ——————————\n${[...boolDecls, ...trigDecls].join('\n\n')}`)
+  }
+  if (boolUsage.length) {
+    sections.push(`// — Boolean toggle (onClick) ————————————————\n${boolUsage.join('\n')}`)
+  }
+  if (triggerUsage.length) {
+    sections.push(`// — Fire trigger (onClick) ——————————————————\n${triggerUsage.join('\n')}`)
+  }
+
+  return sections.join('\n\n')
 }
 
 /* ── copy button ───────────────────────────────────────── */
@@ -178,8 +196,8 @@ function CodeBlock({ title, code }) {
 }
 
 /* ── panel ─────────────────────────────────────────────── */
-export default function CodePanel({ artboard }) {
-  const setupCode     = buildSetupSnippet(artboard)
+export default function CodePanel({ artboard, fileName }) {
+  const setupCode     = buildSetupSnippet(artboard, fileName)
   const inputsCode    = buildInputsSnippet(artboard)
   const viewModelCode = buildViewModelSnippet(artboard)
   const textRunsCode  = buildTextRunsSnippet()
