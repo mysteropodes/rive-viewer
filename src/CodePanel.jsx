@@ -170,51 +170,86 @@ function buildInputsSnippet(artboard) {
 }
 
 /* ══════════════════════════════════════════════════════════
-   FLUTTER snippets
+   FLUTTER snippets  (rive ^0.14.x — RiveWidget + RiveWidgetController)
 ══════════════════════════════════════════════════════════ */
+function buildFlutterPubspecSnippet(fileName) {
+  const src = `assets/${fileName ?? 'animation.riv'}`
+  return [
+    `# pubspec.yaml`,
+    `dependencies:`,
+    `  rive: ^0.14.6`,
+    ``,
+    `flutter:`,
+    `  assets:`,
+    `    - ${src}`,
+  ].join('\n')
+}
+
 function buildFlutterSetupSnippet(artboard, fileName) {
-  const src  = `assets/${fileName ?? 'animation.riv'}`
-  const sm   = artboard.stateMachine
+  const src      = `assets/${fileName ?? 'animation.riv'}`
+  const sm       = artboard.stateMachine
   const bools    = artboard.boolInputs    ?? []
   const triggers = artboard.triggerInputs ?? []
-  const hasInputs = bools.length > 0 || triggers.length > 0
+  const numbers  = artboard.numberInputs  ?? []
+  const hasInputs = bools.length > 0 || triggers.length > 0 || numbers.length > 0
+  const smSel    = sm
+    ? `      stateMachineSelector: StateMachineNamed('${sm}'),`
+    : `      // pas de State Machine → StateMachineDefault()`
 
   const L = []
   L.push(`import 'package:rive/rive.dart';`)
   L.push(``)
-  L.push(`// pubspec.yaml :`)
-  L.push(`//   flutter:`)
-  L.push(`//     assets:`)
-  L.push(`//       - ${src}`)
+  L.push(`class MyWidget extends StatefulWidget {`)
+  L.push(`  const MyWidget({super.key});`)
+  L.push(`  @override`)
+  L.push(`  State<MyWidget> createState() => _MyWidgetState();`)
+  L.push(`}`)
   L.push(``)
-
-  if (!hasInputs) {
-    L.push(`RiveAnimation.asset(`)
-    L.push(`  '${src}',`)
-    L.push(`  artboard: '${artboard.label}',`)
-    if (sm) L.push(`  stateMachines: ['${sm}'],`)
-    L.push(`  fit: BoxFit.contain,`)
-    L.push(`)`)
-  } else {
-    bools.forEach(n    => L.push(`SMIBool?    _${n};`))
-    triggers.forEach(n => L.push(`SMITrigger? _${n};`))
-    L.push(``)
-    L.push(`void _onInit(Artboard artboard) {`)
-    L.push(`  final ctrl = StateMachineController.fromArtboard(`)
-    L.push(`    artboard, '${sm}',`)
-    L.push(`  );`)
-    L.push(`  artboard.addController(ctrl!);`)
-    bools.forEach(n    => L.push(`  _${n} = ctrl.findInput<bool>('${n}') as SMIBool;`))
-    triggers.forEach(n => L.push(`  _${n} = ctrl.findInput<bool>('${n}') as SMITrigger;`))
-    L.push(`}`)
-    L.push(``)
-    L.push(`RiveAnimation.asset(`)
-    L.push(`  '${src}',`)
-    L.push(`  artboard: '${artboard.label}',`)
-    L.push(`  onInit: _onInit,`)
-    L.push(`  fit: BoxFit.contain,`)
-    L.push(`)`)
+  L.push(`class _MyWidgetState extends State<MyWidget> {`)
+  L.push(`  RiveWidgetController? _ctrl;`)
+  if (hasInputs) {
+    bools.forEach(n    => L.push(`  BooleanInput?  _${n};`))
+    triggers.forEach(n => L.push(`  TriggerInput?  _${n};`))
+    numbers.forEach(n  => L.push(`  NumberInput?   _${n};`))
   }
+  L.push(``)
+  L.push(`  @override`)
+  L.push(`  void initState() {`)
+  L.push(`    super.initState();`)
+  L.push(`    _load();`)
+  L.push(`  }`)
+  L.push(``)
+  L.push(`  Future<void> _load() async {`)
+  L.push(`    final file = await File.asset('${src}',`)
+  L.push(`      riveFactory: Factory.rive,`)
+  L.push(`    );`)
+  L.push(`    if (file == null || !mounted) return;`)
+  L.push(`    final ctrl = RiveWidgetController(file,`)
+  L.push(`      artboardSelector: ArtboardNamed('${artboard.label}'),`)
+  L.push(`${smSel}`)
+  L.push(`    );`)
+  if (hasInputs) {
+    L.push(`    final s = ctrl.stateMachine;`)
+    bools.forEach(n    => L.push(`    _${n} = s.boolean('${n}');`))
+    triggers.forEach(n => L.push(`    _${n} = s.trigger('${n}');`))
+    numbers.forEach(n  => L.push(`    _${n} = s.number('${n}');`))
+  }
+  L.push(`    setState(() => _ctrl = ctrl);`)
+  L.push(`  }`)
+  L.push(``)
+  L.push(`  @override`)
+  L.push(`  void dispose() {`)
+  L.push(`    _ctrl?.dispose();`)
+  L.push(`    super.dispose();`)
+  L.push(`  }`)
+  L.push(``)
+  L.push(`  @override`)
+  L.push(`  Widget build(BuildContext context) {`)
+  L.push(`    final ctrl = _ctrl;`)
+  L.push(`    if (ctrl == null) return const CircularProgressIndicator();`)
+  L.push(`    return RiveWidget(controller: ctrl, fit: Fit.contain);`)
+  L.push(`  }`)
+  L.push(`}`)
 
   return L.join('\n')
 }
@@ -222,17 +257,23 @@ function buildFlutterSetupSnippet(artboard, fileName) {
 function buildFlutterInputsSnippet(artboard) {
   const bools    = artboard.boolInputs    ?? []
   const triggers = artboard.triggerInputs ?? []
-  if (!bools.length && !triggers.length) return null
+  const numbers  = artboard.numberInputs  ?? []
+  if (!bools.length && !triggers.length && !numbers.length) return null
 
   const L = []
   if (bools.length) {
-    L.push(`// — Toggle boolean ————————————————————————`)
+    L.push(`// — Boolean ————————————————————————————————`)
     bools.forEach(n => L.push(`_${n}?.value = !(_${n}?.value ?? false);`))
   }
   if (triggers.length) {
     if (L.length) L.push(``)
-    L.push(`// — Fire trigger ——————————————————————————`)
+    L.push(`// — Trigger —————————————————————————————————`)
     triggers.forEach(n => L.push(`_${n}?.fire();`))
+  }
+  if (numbers.length) {
+    if (L.length) L.push(``)
+    L.push(`// — Number (0–100) ——————————————————————————`)
+    numbers.forEach(n => L.push(`_${n}?.value = 50.0;`))
   }
   return L.join('\n')
 }
@@ -381,11 +422,13 @@ export default function CodePanel({ artboard, fileName }) {
   }
 
   if (platform === 'flutter') {
-    const setupCode  = buildFlutterSetupSnippet(artboard, fileName)
-    const inputCode  = buildFlutterInputsSnippet(artboard)
+    const pubspecCode = buildFlutterPubspecSnippet(fileName)
+    const setupCode   = buildFlutterSetupSnippet(artboard, fileName)
+    const inputCode   = buildFlutterInputsSnippet(artboard)
     blocks = [
-      { title: 'RiveAnimation.asset — setup + widget', code: setupCode },
-      inputCode && { title: 'Contrôler les inputs',    code: inputCode },
+      { title: 'pubspec.yaml',          code: pubspecCode },
+      { title: 'Widget — setup',        code: setupCode   },
+      inputCode && { title: 'Contrôler les inputs', code: inputCode },
     ].filter(Boolean)
   }
 
